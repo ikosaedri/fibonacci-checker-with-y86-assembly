@@ -20,9 +20,27 @@ bool isFibonacci(int x) {
 }
 ```
 The multiplication subroutine uses the peasant binary algorithm.  
-The sqrt subroutine uses [digit-by-digit calculation](https://en.wikipedia.org/wiki/Square_root_algorithms#Binary_numeral_system_(base_2)).
+The sqrt subroutine uses [digit-by-digit calculation](https://en.wikipedia.org/wiki/Square_root_algorithms#Binary_numeral_system_(base_2)).  
+The C implementation for the algorithm:
 ```c
+// num is the number which square root is calculated
+// res is the result
+int32_t res = 0;
+int32_t bit = 1 << 24; 
 
+while (bit > num) {
+   bit >>= 2;
+   }
+   
+while (bit != 0) {
+   if (num >= res + bit) {
+      num -= res + bit;
+      res = (res >> 1) + bit;
+   } else {
+      res >>= 1;
+   }
+   bit >>= 2;
+}
 ```
 ## Limitations
 - The program assumes the number sequence always begins with at least the number 1 and ends with number 0.
