@@ -19,24 +19,10 @@ bool isFibonacci(int x) {
     return isPerfectSquare(5*x*x + 4) || isPerfectSquare(5*x*x - 4);
 }
 ```
-The multiplication subroutine uses the peasant multiplication algorithm.
+The multiplication subroutine uses the peasant binary algorithm.  
+The sqrt subroutine uses [digit-by-digit calculation](https://en.wikipedia.org/wiki/Square_root_algorithms#Binary_numeral_system_(base_2)).
 ```c
-int32_t res = 0;
-int32_t bit = 1 << 16; 
 
-while (bit > num) {
-   bit >>= 2;
-   }
-   
-while (bit != 0) {
-   if (num >= res + bit) {
-      num -= res + bit;
-      res = (res >> 1) + bit;
-   } else {
-      res >>= 1;
-   }
-   bit >>= 2;
-}
 ```
 ## Limitations
 - The program assumes the number sequence always begins with at least the number 1 and ends with number 0.
