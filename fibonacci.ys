@@ -1,0 +1,154 @@
+# Fibonacci checker
+#The program reads the number sequence starting at memory location 0x700.
+#The program goes through the numbers and checks if they are fibonacci numbers.
+#The execution stops, when the program encounters first number that is not fibonacci number or 0. This number is returned in the %rax #register.
+#If all the numbers in the sequence are fibonacci numbers, the program returns value 0 in the %rax register.
+
+main:
+    irmovq stack, %rbp  
+    irmovq stack, %rsp
+    irmovq $0x700, %rdx #rdx = num address
+
+loop:
+    irmovq $4, %r12
+    irmovq $5, %r13
+    mrmovq (%rdx), %r14 #r14 = num
+    irmovq $0, %r8
+    addq %r14, %r8  # if num = 0, jump 
+    je notFibonacci
+    
+    rrmovq %r13, %rsi # move arguments for multiplication
+    rrmovq %r14, %rdi 
+    call multiplication # rax = num*5
+    rrmovq %rax, %rsi #move arguments for multiplicaton
+    rrmovq %r14, %rdi 
+    call multiplication # rax = num*num*5
+    rrmovq %rax, %rdi
+    addq %r12, %rdi # num*num*5+4 in rdi for isPerfectSquare
+    
+    pushq %rdx #save num address
+    pushq %r14 #save num
+    pushq %rax #save num*num*5
+    call isNotPerfectSquare #if rcx = 0, is perfect square
+    popq %rdi # rdi = num*num*5
+    popq %r14 # r14 = num
+    popq %rdx # rdx = num address
+    addq %rcx, %rcx 
+    je updateAddress #if rcx + rcx = 0, jump 
+    
+    irmovq $4, %r12
+    subq %r12, %rdi # num*num*5-4 in rdi for isPerfectSquare
+    pushq %rdx #save num address
+    pushq %r14 #save num
+    call isNotPerfectSquare  #if rcx = 0, is perfect square
+    popq %r14 # r14 = num
+    popq %rdx # rdx = num address
+    addq %rcx, %rcx
+    jne notFibonacci #if rcx + rcx != 0, jump 
+updateAddress: 
+    irmovq $8, %r8
+    addq %r8, %rdx # address = address + 8 (next num address)
+    jmp loop
+  
+notFibonacci:
+    rrmovq %r14, %rax
+    halt
+    
+.pos 0x240
+isNotPerfectSquare: #argument in rdi
+    rrmovq %rdi, %rsi 
+    call sqrt # rcx = sqrt(rsi)
+    rrmovq %rcx, %rsi
+    rrmovq %rdi, %rcx
+    rrmovq %rsi, %rdi 
+    call multiplication # rax = rdi * rsi
+    subq %rax, %rcx #if is perfect square, rcx = 0
+    ret
+    
+.pos 0x2b0
+sqrt:
+    irmovq $0x1000000, %rbx #bit in %rbx
+    irmovq $0, %rcx
+bitSiftLoop:
+    rrmovq %rsi, %r8
+    subq %rbx, %r8 #r8 = num -bit
+    jge sqrtLoop
+    rrmovq %rbx, %rdx 
+    call sift    # rax = sift(rdx)
+    rrmovq %rax, %rdx #sift bit again
+    call sift    # rax = sift(rdx)
+    rrmovq %rax, %rbx
+    jmp bitSiftLoop
+    
+sqrtLoop:
+    irmovq $0, %r8
+    addq %rbx, %r8 #test if bit = 0
+    je sqrtReady      # if bit = 0, jump
+    rrmovq %rcx, %r14 #res in rcx and r14
+    rrmovq %rsi, %r13 #num to r13
+    addq %rbx, %r14 # r14 = res + bit
+    rrmovq %rcx, %rdx #move res for sift
+    call sift  #rax = rdx>>1
+    rrmovq %rbx, %r12   
+    addq %rax, %r12 # r12 = (res>>1)+bit
+    subq %r14, %r13 # r13= num-(res+bit)
+    cmovge %r13, %rsi #num = num-(res+bit) 
+    cmovge %r12, %rcx #res = (res>>1)+bit
+    cmovl %rax, %rcx  #res = res>>1
+    
+    rrmovq %rbx, %rdx #move bit for sift
+    call sift    # rax = sift(rdx)
+    rrmovq %rax, %rdx
+    call sift
+    rrmovq %rax, %rbx # bit = bit>>2
+    jmp sqrtLoop
+sqrtReady:
+    ret
+ 
+    
+.pos 0x390
+sift:  #argument in rdx
+    irmovq $0, %rax
+    irmovq $0x2, %r9
+    irmovq $0x1, %r10
+siftLoop:
+    rrmovq %r9, %r11
+    andq %rdx, %r11 # r11 = arg && r11
+    je SiftZero   # add sifted bit to answer if not 0
+    addq %r10, %rax 
+SiftZero:
+    addq %r9, %r9  # move to look the next bit
+    addq %r10, %r10 
+    rrmovq %rdx, %r11 # r11 = argument
+    subq %r9, %r11 
+    jge siftLoop  # if r9 > arg, whole arg is sifted -> done
+SiftReady:
+    ret 
+
+.pos 0x400
+multiplication:  #arguments num1, num2 in rsi, rdi
+    irmovq $1, %r10 #bit mask
+    irmovq $1, %r8 #constant 1
+    irmovq $0, %rax #clean rax for ans
+multiplicationLoop:
+    rrmovq %r10, %r9
+    andq %rsi, %r9 # if num1 && bit mask-> add num2 to answer
+    je zero
+    addq %rdi, %rax
+zero:
+    addq %rdi, %rdi # num2 = num2<<1
+    addq %r10, %r10 #next bit 0x..0010.. -> 0x..0100..
+    rrmovq %rsi, %r11 # r11 = num1
+    subq %r10, %r11 #num1 - bit mask
+    jl multiplicationReady #if bit mask > num1, multiplication is ready
+    jmp multiplicationLoop
+multiplicationReady:
+    ret
+    
+.pos 0x6f8
+stack:
+.pos 0x700
+array:
+
+
+
